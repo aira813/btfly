@@ -6,7 +6,7 @@ import os
 import sys
 
 from btfly import __version__
-from btfly.conf import load_conf, HostsManager
+from btfly.conf import load_conf, load_url_conf, HostsManager
 from btfly.utils import create_logger
 from btfly.plugin_manager import PluginManager
 from btfly.task import BaseTask
@@ -40,10 +40,16 @@ class Main(object):
             '-c', '--conf', default=default_conf_path,
             help='Configuration file path. (default: %s)' % (default_conf_path)
         )
+        parser.add_argument(
+            '--conf-url', help='Configuration file url.'
+        )
         default_hosts_conf_path = self.default_hosts_conf_path(conf_dir)
         parser.add_argument(
             '-h', '--hosts-conf', default=default_hosts_conf_path,
             help='Hosts configuration file path. (default: %s)' % (default_hosts_conf_path)
+        )
+        parser.add_argument(
+           '--hosts-conf-url', help='Hosts configuration file url.'
         )
         parser.add_argument(
             '-s', '--statuses', help='Specify statues.'
@@ -82,8 +88,12 @@ class Main(object):
         self._plugin_manager = plugin_manager
 
         # Load configuration
-        conf = load_conf(self._options['conf'])
-        hosts_conf = load_conf(self._options['hosts_conf'])
+        conf = load_url_conf(self._options['conf_url'])
+        if conf == None:
+            conf = load_conf(self._options['conf'])
+        hosts_conf = load_url_conf(self._options['hosts_conf_url'])
+        if hosts_conf == None:
+            hosts_conf = load_conf(self._options['hosts_conf'])
         self._hosts_manager = HostsManager(conf, hosts_conf, self._log)
         
         validation_errors = self._hosts_manager.validate(

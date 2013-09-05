@@ -3,32 +3,61 @@
 import copy
 import re
 from btfly.utils import create_logger
+from urllib2 import urlopen, URLError, HTTPError
 
 def load_conf(file, options=None):
+
     if not file and not options:
         raise ValueError("Cannot determine conf loader class.")
-    
-    if file:
-        type = None
-        for t, dict in TYPE2LOADER.iteritems():
-            for suffix in dict['file_suffixes']:
-                if file.endswith(suffix):
-                    type = t
-                    break
-            if type:
-                break
-        if type is None:
-            raise ValueError("Unknown file type. File extension must be 'yaml', 'yml' or 'json'.")
 
+    if file:
+        type = get_file_type(file)
         loader_class = TYPE2LOADER[type]['loader_class']
         return loader_class().load_file(file)
     else:
         # TODO
         pass
 
+def load_url_conf(url, options=None):
+
+    if not url and not options:
+        return None
+
+    if url:
+        type = get_file_type(url)
+        loader_class = TYPE2LOADER[type]['loader_class']
+        return loader_class().load_url(url)
+    else:
+        # TODO
+        pass
+
+def get_file_type(path, options=None):
+    type = None
+    for t, dict in TYPE2LOADER.iteritems():
+        for suffix in dict['file_suffixes']:
+            if path.endswith(suffix):
+                type = t
+                break
+        if type:
+            break
+    if type is None:
+        raise ValueError("Unknown file type. File extension must be 'yaml', 'yml' or 'json'.")
+    return type
+
 class ConfLoader(object):
     def __init__(self):
         pass
+
+    def load_url(self,file):
+        if not file:
+            raise ValueError("file path is empty.")
+        try:
+            src = urlopen(file).read()
+        except HTTPError, (strerror):
+            raise IOError("Cannot read a configuration file '%s'. (%s)" % (file, strerror))
+        except URLError, (strerror):
+            raise IOError("Cannot read a configuration file '%s'. (%s)" % (file, strerror))
+        return self.load(src)
 
     def load_file(self, file):
         if not file:
